@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GitHub Pages CORS 测试</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { 
+            font-family: 'Microsoft YaHei', Arial, sans-serif; 
+            background: #f5f5f5;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 { color: #2d3748; margin-bottom: 20px; }
+        .test-section {
+            margin-bottom: 30px;
+            padding: 20px;
+            background: #f7fafc;
+            border-radius: 8px;
+            border-left: 4px solid #3b82f6;
+        }
+        .test-section h2 {
+            color: #3b82f6;
+            margin-bottom: 15px;
+            font-size: 18px;
+        }
+        button {
+            background: #3b82f6;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background: #2563eb;
+        }
+        .result {
+            margin-top: 15px;
+            padding: 15px;
+            border-radius: 5px;
+            font-family: 'Consolas', monospace;
+            font-size: 13px;
+            white-space: pre-wrap;
+            word-break: break-all;
+        }
+        .success {
+            background: #d1fae5;
+            border: 1px solid #6ee7b7;
+            color: #065f46;
+        }
+        .error {
+            background: #fee2e2;
+            border: 1px solid #fca5a5;
+            color: #991b1b;
+        }
+        .info {
+            background: #dbeafe;
+            border: 1px solid #93c5fd;
+            color: #1e40af;
+        }
+        .loading {
+            color: #3b82f6;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 GitHub Pages CORS 诊断工具</h1>
+        <p style="color: #64748b; margin-bottom: 30px;">此页面用于测试 GitHub Pages 访问 API 的跨域问题</p>
+
+        <!-- 测试1：当前环境信息 -->
+        <div class="test-section">
+            <h2>📍 测试1：当前环境信息</h2>
+            <button onclick="test1()">查看环境信息</button>
+            <div id="result1"></div>
+        </div>
+
+        <!-- 测试2：API 连接测试 -->
+        <div class="test-section">
+            <h2>🌐 测试2：API 连接测试（基础）</h2>
+            <button onclick="test2()">测试连接</button>
+            <div id="result2"></div>
+        </div>
+
+        <!-- 测试3：CORS 头部测试 -->
+        <div class="test-section">
+            <h2>🔐 测试3：CORS 跨域配置测试</h2>
+            <button onclick="test3()">测试CORS</button>
+            <div id="result3"></div>
+        </div>
+
+        <!-- 测试4：获取企业信息 -->
+        <div class="test-section">
+            <h2>🏢 测试4：获取企业信息</h2>
+            <input type="text" id="companyCode" placeholder="输入企业编码" style="padding: 8px; border: 1px solid #e2e8f0; border-radius: 5px; width: 200px; margin-right: 10px;">
+            <button onclick="test4()">获取企业信息</button>
+            <div id="result4"></div>
+        </div>
+
+        <!-- 测试5：详细错误诊断 -->
+        <div class="test-section">
+            <h2>🔬 测试5：详细错误诊断</h2>
+            <button onclick="test5()">开始诊断</button>
+            <div id="result5"></div>
+        </div>
+    </div>
+
+    <script>
+        const API_BASE_URL = 'https://xin.yituxs.com';
+
+        // 测试1：环境信息
+        function test1() {
+            const result = document.getElementById('result1');
+            result.className = 'result info';
+            result.textContent = `当前页面URL: ${window.location.href}
+当前域名: ${window.location.hostname}
+协议: ${window.location.protocol}
+API 地址: ${API_BASE_URL}
+User Agent: ${navigator.userAgent}`;
+        }
+
+        // 测试2：基础连接
+        function test2() {
+            const result = document.getElementById('result2');
+            result.className = 'result loading';
+            result.textContent = '正在测试连接...';
+
+            fetch(`${API_BASE_URL}/api/api.php?action=list`)
+                .then(response => {
+                    result.className = 'result info';
+                    result.textContent = `HTTP 状态: ${response.status}
+状态文本: ${response.statusText}
+Content-Type: ${response.headers.get('content-type')}
+Access-Control-Allow-Origin: ${response.headers.get('Access-Control-Allow-Origin')}
+
+响应接收成功！正在解析数据...`;
+                    return response.json();
+                })
+                .then(data => {
+                    result.className = 'result success';
+                    result.textContent += `\n\n✅ API 连接成功！
+返回数据: ${JSON.stringify(data, null, 2)}`;
+                })
+                .catch(error => {
+                    result.className = 'result error';
+                    result.textContent = `❌ 连接失败！
+错误类型: ${error.name}
+错误信息: ${error.message}
+错误堆栈: ${error.stack}`;
+                });
+        }
+
+        // 测试3：CORS测试
+        function test3() {
+            const result = document.getElementById('result3');
+            result.className = 'result loading';
+            result.textContent = '正在测试CORS配置...';
+
+            fetch(`${API_BASE_URL}/api/api.php?action=list`, {
+                method: 'GET',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            })
+            .then(response => {
+                const corsHeaders = {
+                    'Access-Control-Allow-Origin': response.headers.get('Access-Control-Allow-Origin'),
+                    'Access-Control-Allow-Methods': response.headers.get('Access-Control-Allow-Methods'),
+                    'Access-Control-Allow-Headers': response.headers.get('Access-Control-Allow-Headers'),
+                    'Access-Control-Allow-Credentials': response.headers.get('Access-Control-Allow-Credentials')
+                };
+
+                result.className = 'result success';
+                result.textContent = `✅ CORS 响应头信息：
+${JSON.stringify(corsHeaders, null, 2)}
+
+HTTP 状态: ${response.status}`;
+                return response.json();
+            })
+            .catch(error => {
+                result.className = 'result error';
+                result.textContent = `❌ CORS 测试失败！
+错误: ${error.message}
+
+这通常表示服务器没有正确配置CORS头部。`;
+            });
+        }
+
+        // 测试4：获取企业信息
+        function test4() {
+            const code = document.getElementById('companyCode').value.trim();
+            const result = document.getElementById('result4');
+
+            if (!code) {
+                result.className = 'result error';
+                result.textContent = '请输入企业编码！';
+                return;
+            }
+
+            result.className = 'result loading';
+            result.textContent = `正在获取企业编码 ${code} 的信息...`;
+
+            fetch(`${API_BASE_URL}/api/api.php?action=get&code=${encodeURIComponent(code)}`)
+                .then(response => {
+                    result.textContent += `\n\nHTTP 状态: ${response.status}`;
+                    return response.json();
+                })
+                .then(data => {
+                    if (data.success) {
+                        result.className = 'result success';
+                        result.textContent += `\n\n✅ 获取成功！
+企业名称: ${data.data.company_name}
+企业编码: ${data.data.unique_code}
+状态: ${data.data.status == 1 ? '启用' : '禁用'}
+完整数据: ${JSON.stringify(data.data, null, 2)}`;
+                    } else {
+                        result.className = 'result error';
+                        result.textContent += `\n\n❌ 获取失败！
+错误信息: ${data.message}`;
+                    }
+                })
+                .catch(error => {
+                    result.className = 'result error';
+                    result.textContent = `❌ 请求失败！
+错误: ${error.message}`;
+                });
+        }
+
+        // 测试5：综合诊断
+        function test5() {
+            const result = document.getElementById('result5');
+            result.className = 'result loading';
+            result.textContent = '开始综合诊断...\n\n';
+
+            // 步骤1：检查网络
+            result.textContent += '步骤1/5: 检查网络连接...\n';
+            fetch(`${API_BASE_URL}/api/api.php?action=list`)
+                .then(response => {
+                    result.textContent += `✅ 网络连接正常 (HTTP ${response.status})\n\n`;
+                    
+                    // 步骤2：检查CORS
+                    result.textContent += '步骤2/5: 检查CORS配置...\n';
+                    const allowOrigin = response.headers.get('Access-Control-Allow-Origin');
+                    if (allowOrigin) {
+                        result.textContent += `✅ CORS已配置: ${allowOrigin}\n\n`;
+                    } else {
+                        result.textContent += `⚠️  未检测到CORS头部\n\n`;
+                    }
+                    
+                    // 步骤3：解析响应
+                    result.textContent += '步骤3/5: 解析API响应...\n';
+                    return response.json();
+                })
+                .then(data => {
+                    result.textContent += `✅ API响应解析成功\n`;
+                    result.textContent += `   数据条数: ${data.data ? data.data.length : 0}\n\n`;
+                    
+                    // 步骤4：测试企业查询
+                    result.textContent += '步骤4/5: 测试企业查询功能...\n';
+                    if (data.data && data.data.length > 0) {
+                        const testCode = data.data[0].unique_code;
+                        result.textContent += `   使用测试编码: ${testCode}\n`;
+                        
+                        return fetch(`${API_BASE_URL}/api/api.php?action=get&code=${testCode}`)
+                            .then(r => r.json())
+                            .then(d => {
+                                if (d.success) {
+                                    result.textContent += `✅ 企业查询功能正常\n\n`;
+                                } else {
+                                    result.textContent += `⚠️  企业查询失败: ${d.message}\n\n`;
+                                }
+                                return d;
+                            });
+                    } else {
+                        result.textContent += `⚠️  数据库中没有企业数据\n\n`;
+                    }
+                })
+                .then(() => {
+                    // 步骤5：总结
+                    result.textContent += '步骤5/5: 诊断完成\n\n';
+                    result.textContent += '=== 诊断结果 ===\n';
+                    result.textContent += '✅ 所有测试通过！\n';
+                    result.textContent += '如果GitHub Pages仍显示加载失败，请检查：\n';
+                    result.textContent += '1. index.html 文件是否已上传到 GitHub\n';
+                    result.textContent += '2. GitHub Pages 是否已成功部署\n';
+                    result.textContent += '3. 浏览器是否缓存了旧版本（尝试强制刷新）\n';
+                    result.className = 'result success';
+                })
+                .catch(error => {
+                    result.className = 'result error';
+                    result.textContent += `
+❌ 诊断中断！
+错误: ${error.message}
+
+`;
+                    result.textContent += '可能的原因：\n';
+                    result.textContent += '1. API 服务器未运行或无法访问\n';
+                    result.textContent += '2. CORS 配置不正确\n';
+                    result.textContent += '3. 网络连接问题\n';
+                    result.textContent += '4. 防火墙阻止了跨域请求\n';
+                });
+        }
+
+        // 页面加载时自动执行测试1
+        window.addEventListener('load', function() {
+            test1();
+        });
+    </script>
+</body>
+</html>
